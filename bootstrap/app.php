@@ -16,5 +16,5 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo('/dashboard');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->dontFlash(['password', 'password_confirmation', 'current_password', 'code', 'recovery_code', 'token']);
+        $exceptions->dontFlash(['password', 'password_confirmation', 'current_password', 'code', 'recovery_code', 'token', 'answer', 'feedback']);
     })->create();

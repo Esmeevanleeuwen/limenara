@@ -16,6 +16,15 @@ class AppServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        \Illuminate\Auth\Notifications\VerifyEmail::toMailUsing(fn (object $user, string $url) =>
+            (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject('Bevestig je e-mailadres — Limenora')
+                ->greeting('Welkom bij Limenora,')
+                ->line('Bevestig jouw e-mailadres om je account te gebruiken. Een gekozen programma blijft voor je klaarstaan; je beslist daarna zelf of je start.')
+                ->action('E-mailadres bevestigen', $url)
+                ->line('Deze link is tijdelijk geldig. Je kunt op de website een nieuwe link aanvragen. Heb je geen account gemaakt? Dan hoef je niets te doen.')
+                ->salutation('Limenora · ruimte om te begrijpen')
+        );
         Password::defaults(fn () => Password::min(12));
         Gate::policy(Program::class, ProgramPolicy::class);
         URL::forceRootUrl(config('app.url'));

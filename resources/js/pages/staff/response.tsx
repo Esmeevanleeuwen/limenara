@@ -1,0 +1,10 @@
+import { Head, Link, useForm } from '@inertiajs/react';
+import { Errors, Workspace } from '../../components/ui';
+import type { Lesson, ResponseEntry } from '../../types';
+type Item = ResponseEntry & { participant: string; title: string; lesson: Lesson };
+export default function Response({ response }: { response: Item }) {
+  const form = useForm({ feedback: response.feedback ?? '', revision: response.revision });
+  return <Workspace title={`Gedeeld door ${response.participant}`} subtitle={response.title}><Head title="Gedeeld antwoord"/><Link href="/werk/inzendingen" className="text-link">← Alle inzendingen</Link><article className="card response-detail"><p className="eyebrow">{response.lesson.module || 'ONDERDEEL'}</p><h2>{response.lesson.title}</h2><p className="muted preserve">{response.lesson.body}</p><h3>Wat de deelnemer heeft gedeeld</h3><p className="preserve shared-answer">{response.answer}</p><p className="fineprint">Je mag dit antwoord niet gebruiken buiten het afgesproken doel. Het is geen behandelopdracht. Controleer vóór reageren of dit binnen je deskundigheid past.</p></article>
+    <form className="card form-card" onSubmit={e => { e.preventDefault(); form.put(`/werk/inzendingen/${response.id}`, { onSuccess: page => { const r = page.props.response as Item; form.setData({ feedback: r.feedback ?? '', revision: r.revision }); form.setDefaults({ feedback: r.feedback ?? '', revision: r.revision }); }, preserveScroll: true }); }}><div className="field"><label htmlFor="feedback">Jouw reactie</label><textarea id="feedback" rows={6} maxLength={4000} value={form.data.feedback} onChange={e => form.setData('feedback', e.target.value)} required/></div><p className="fineprint">Vraag door of help de vraag helder te krijgen. Geen automatische diagnose, medicatieadvies of herstelbelofte. Bij intrekken van delen vervalt jouw toegang, ook als deze pagina nog openstaat.</p><Errors errors={form.errors}/><button className="button" disabled={form.processing}>Reactie opslaan</button></form>
+  </Workspace>;
+}

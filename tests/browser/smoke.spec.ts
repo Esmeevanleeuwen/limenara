@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-test('homepage, empty library and mobile layout', async ({ page }) => {
+test('homepage, library and mobile layout', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Jouw eigen richting');
   await page.screenshot({ path: 'test-results/home-desktop.png', fullPage: true });
   await page.getByRole('link', { name: 'Ontdek programma’s', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Hier groeit het programma-aanbod.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('volgende stap.');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await expect(page.getByRole('link', { name: 'Begin hier' })).toBeVisible();

@@ -28,3 +28,12 @@ Artisan::command('limenora:prune-invitations', function () {
     $this->info($count.' oude uitnodigingen verwijderd.');
 });
 Schedule::command('limenora:prune-invitations')->daily();
+
+
+Artisan::command('limenora:retry-program-mail', function () {
+    $count = 0;
+    \App\Models\ProgramMail::whereNull('sent_at')->whereNull('cancelled_at')->orderBy('id')->chunkById(100, function ($mails) use (&$count) {
+        foreach ($mails as $mail) { \App\Jobs\SendProgramMail::dispatch($mail->id); $count++; }
+    });
+    $this->info($count.' openstaande programmameldingen opnieuw in de wachtrij gezet. Rechten worden voor verzending opnieuw gecontroleerd.');
+})->purpose('Herstel openstaande programmamails; verstuurde meldingen worden niet opnieuw verstuurd.');

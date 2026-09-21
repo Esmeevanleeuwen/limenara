@@ -22,6 +22,8 @@ if grep -q '^APP_KEY=$' .env; then ./dev artisan key:generate --ansi; fi
 echo '4/5 Frontend installeren en bouwen…'
 if [[ -f package-lock.json ]]; then ./dev npm ci; else ./dev npm install; fi
 ./dev npm run build
+docker compose up -d queue
+./dev artisan queue:restart
 echo '5/5 Klaar. Standaardadressen (bij gewijzigde poorten: zie .env):'
 echo 'Limenora:    http://localhost:8080'
 echo 'phpMyAdmin:  http://localhost:8081'

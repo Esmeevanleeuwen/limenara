@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EnrollmentController;
+use App\Http\Controllers\LessonResponseController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProgramController;
@@ -13,6 +14,7 @@ use Inertia\Inertia;
 Route::get('/', fn () => Inertia::render('home'))->name('home');
 Route::get('/privacy', fn () => Inertia::render('privacy'))->name('privacy');
 Route::get('/programmas', [ProgramController::class, 'index'])->name('programs.index');
+Route::get('/programmas/{program}/start', [ProgramController::class, 'begin']);
 Route::get('/programmas/{program}', [ProgramController::class, 'show'])->name('programs.show');
 Route::get('/makers', [ProfileController::class, 'index'])->name('profiles.index');
 Route::get('/makers/{publicId}', [ProfileController::class, 'show'])->whereUuid('publicId')->name('profiles.show');
@@ -22,9 +24,12 @@ Route::get('/uitnodiging', [InvitationController::class, 'show'])->name('invitat
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function (Request $r) {
         if ($r->session()->has('pending_invitation_hash')) return redirect('/uitnodiging');
+        if ($programId = $r->session()->pull('intended_program_id')) {
+            if (\App\Models\Program::whereKey($programId)->whereHas('latestVersion')->exists()) return redirect('/programmas/'.$programId);
+        }
         $enrollments = Enrollment::where('user_id', $r->user()->id)->with('version')->latest()->get()->map(fn ($e) => [
             'id' => $e->id, 'title' => $e->version->title, 'version' => $e->version->number,
-            'done' => count($e->completed_lessons ?? []), 'total' => count($e->version->lessons),
+            'is_paused' => $e->is_paused, 'done' => count($e->completed_lessons ?? []), 'total' => count($e->version->lessons),
         ]);
         return Inertia::render('dashboard', ['enrollments' => $enrollments]);
     })->name('dashboard');
@@ -35,6 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/security/unlock', [SecurityController::class, 'unlock'])->middleware('throttle:mfa-unlock');
     Route::post('/programmas/{program}/deelnemen', [EnrollmentController::class, 'store'])->middleware('throttle:platform-write');
     Route::get('/mijn-programmas/{enrollment}', [EnrollmentController::class, 'show']);
+    Route::put('/mijn-programmas/{enrollment}/pauze', [EnrollmentController::class, 'pause'])->middleware('throttle:platform-write');
+    Route::put('/mijn-programmas/{enrollment}/antwoorden/{lesson}', [LessonResponseController::class, 'save'])->whereNumber('lesson')->middleware('throttle:platform-write');
+    Route::delete('/mijn-programmas/{enrollment}/antwoorden/{lesson}/delen', [LessonResponseController::class, 'unshare'])->whereNumber('lesson')->middleware('throttle:platform-write');
+    Route::delete('/mijn-programmas/{enrollment}/antwoorden/{lesson}', [LessonResponseController::class, 'delete'])->whereNumber('lesson')->middleware('throttle:platform-write');
     Route::put('/mijn-programmas/{enrollment}/voortgang', [EnrollmentController::class, 'progress'])->middleware('throttle:platform-write');
 
     Route::middleware(['can:programs.create', 'mfa'])->prefix('werk')->group(function () {
@@ -45,7 +54,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/programmas', [ProgramController::class, 'store'])->middleware('throttle:platform-write');
         Route::get('/programmas/{program}', [ProgramController::class, 'edit']);
         Route::put('/programmas/{program}', [ProgramController::class, 'update'])->middleware('throttle:platform-write');
+        Route::post('/programmas/{program}/kopieren', [ProgramController::class, 'duplicate'])->middleware('throttle:platform-write');
         Route::post('/programmas/{program}/indienen', [ProgramController::class, 'submit'])->middleware('throttle:platform-write');
+    });
+    Route::middleware(['can:programs.respond', 'mfa'])->prefix('werk')->group(function () {
+        Route::get('/inzendingen', [LessonResponseController::class, 'index']);
+        Route::get('/inzendingen/{response}', [LessonResponseController::class, 'show']);
+        Route::put('/inzendingen/{response}', [LessonResponseController::class, 'feedback'])->middleware('throttle:platform-write');
     });
     Route::middleware(['can:staff.invite', 'mfa'])->prefix('beheer')->group(function () {
         Route::get('/medewerkers', [InvitationController::class, 'index']);

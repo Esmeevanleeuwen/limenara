@@ -1,3 +1,4 @@
+import '../css/programs.css';
 import { createInertiaApp } from '@inertiajs/react';
 
 void createInertiaApp({

@@ -12,12 +12,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        foreach (['staff.invite', 'staff.revoke', 'programs.create', 'programs.review', 'profile.manage'] as $name) {
+        foreach (['staff.invite', 'staff.revoke', 'programs.create', 'programs.respond', 'programs.review', 'profile.manage'] as $name) {
             Permission::findOrCreate($name, 'web');
         }
         Role::findOrCreate('member', 'web')->syncPermissions([]);
-        Role::findOrCreate('staff', 'web')->syncPermissions(['programs.create', 'profile.manage']);
-        Role::findOrCreate('admin', 'web')->syncPermissions(['staff.invite', 'staff.revoke', 'programs.create', 'programs.review', 'profile.manage']);
+        Role::findOrCreate('staff', 'web')->syncPermissions(['programs.create', 'programs.respond', 'profile.manage']);
+        Role::findOrCreate('admin', 'web')->syncPermissions(['staff.invite', 'staff.revoke', 'programs.create', 'programs.respond', 'programs.review', 'profile.manage']);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         // Never seed a privileged user or a known password.
     }
