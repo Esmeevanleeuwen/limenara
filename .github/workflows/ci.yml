@@ -10,6 +10,17 @@ concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  source-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive tracked source only (no environment or database)
+        run: git archive --format=zip HEAD -o limenora-source.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-snapshot
+          path: limenora-source.zip
+          retention-days: 3
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
