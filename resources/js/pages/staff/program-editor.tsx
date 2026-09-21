@@ -19,17 +19,21 @@ export default function ProgramEditor({ program }: { program: ProgramDraft | nul
     [next[index], next[index + step]] = [next[index + step], next[index]];
     form.setData('lessons', next);
   }
+  function syncSaved(page: { props: Record<string, unknown> }) {
+    const saved = page.props.program as ProgramDraft;
+    if (!saved) return;
+    const data = {
+      title: saved.title, summary: saved.summary, goals: saved.goals ?? '',
+      estimated_minutes: saved.estimated_minutes, lessons: saved.lessons, revision: saved.revision,
+    };
+    form.setData(data);
+    form.setDefaults(data);
+    form.clearErrors();
+  }
   function save(event: FormEvent) {
     event.preventDefault();
-    if (!program) { form.post('/werk/programmas'); return; }
-    form.put(`/werk/programmas/${program.id}`, {
-      onSuccess: (page) => {
-        const saved = page.props.program as ProgramDraft;
-        const data = { ...form.data, revision: saved.revision };
-        form.setData(data);
-        form.setDefaults(data);
-      },
-    });
+    if (!program) form.post('/werk/programmas', { onSuccess: syncSaved });
+    else form.put(`/werk/programmas/${program.id}`, { onSuccess: syncSaved });
   }
   return (
     <Workspace title={program ? 'Werk aan je programma' : 'Een nieuw programma'} subtitle="Begin klein. De inhoud is educatief en wordt niet als behandeling aangeboden.">
@@ -60,7 +64,7 @@ export default function ProgramEditor({ program }: { program: ProgramDraft | nul
         <Errors errors={form.errors}/>
         <div className="editor-actions">
           <button className="button" disabled={form.processing}>Concept opslaan</button>
-          {program?.status === 'draft' && <button type="button" className="button secondary" disabled={form.processing || form.isDirty} onClick={() => router.post(`/werk/programmas/${program.id}/indienen`, { revision: program.revision })}>Ter beoordeling aanbieden</button>}
+          {program?.status === 'draft' && <button type="button" className="button secondary" disabled={form.processing || form.isDirty} onClick={() => router.post(`/werk/programmas/${program.id}/indienen`, { revision: program.revision }, { onSuccess: syncSaved })}>Ter beoordeling aanbieden</button>}
         </div>
         <p className="fineprint">Sla wijzigingen eerst op. Publicatie vereist een andere bevoegde beoordelaar. Een nieuwe publicatie wijzigt geen bestaande inschrijvingen.</p>
       </form>
