@@ -1,0 +1,6 @@
+import { Head, useForm } from '@inertiajs/react';
+import { AuthLayout, Field, Errors } from '../../components/ui';
+export default function ResetPassword({ email, token }: { email: string; token: string }) {
+  const form = useForm({ email, token, password: '', password_confirmation: '' });
+  return <AuthLayout title="Een nieuw wachtwoord."><Head title="Wachtwoord herstellen"/><form onSubmit={(e) => { e.preventDefault(); form.post('/reset-password', { onFinish: () => form.reset('password', 'password_confirmation') }); }}><Field label="E-mailadres" name="email" type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} required/><Field label="Nieuw wachtwoord · minimaal 12 tekens" name="password" type="password" autoComplete="new-password" minLength={12} value={form.data.password} onChange={(e) => form.setData('password', e.target.value)} required/><Field label="Herhaal nieuw wachtwoord" name="password_confirmation" type="password" autoComplete="new-password" value={form.data.password_confirmation} onChange={(e) => form.setData('password_confirmation', e.target.value)} required/><Errors errors={form.errors}/><button className="button wide" disabled={form.processing}>Wachtwoord opslaan</button></form></AuthLayout>;
+}
