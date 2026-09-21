@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+[[ -f vendor/bin/sail ]] || { echo 'Voer eerst uit: bash scripts/setup.sh'; exit 1; }
+exec bash vendor/bin/sail "$@"

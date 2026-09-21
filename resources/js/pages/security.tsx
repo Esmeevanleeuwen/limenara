@@ -1,0 +1,76 @@
+import { Head, Link, useForm } from '@inertiajs/react';
+import { Errors, Field, Workspace } from '../components/ui';
+
+type Props = {
+  enabled: boolean;
+  confirmed: boolean;
+  recentPassword: boolean;
+  qr: string | null;
+  recoveryCodes: string[];
+  unlocked: boolean;
+};
+
+export default function Security({ enabled, confirmed, recentPassword, qr, recoveryCodes, unlocked }: Props) {
+  const setup = useForm({});
+  const confirm = useForm({ code: '' });
+  const unlock = useForm({ password: '', code: '' });
+
+  return (
+    <Workspace title="Jouw beveiliging" subtitle="Tweestapsverificatie is verplicht voor medewerkers en beheerders.">
+      <Head title="Beveiliging" />
+      <div className="card form-card">
+        <h2>1. Authenticator-app instellen</h2>
+        <p className="muted">Gebruik een authenticator-app die tijdelijke verificatiecodes maakt.</p>
+        {confirmed && <p className="notice success">Tweestapsverificatie is actief.</p>}
+        {!recentPassword ? (
+          <Link href="/settings/security/credentials" className="button secondary">Bevestig eerst je wachtwoord</Link>
+        ) : (
+          <>
+            {!enabled && <button className="button" disabled={setup.processing} onClick={() => setup.post('/user/two-factor-authentication')}>Start instellen</button>}
+            {qr && (
+              <>
+                <div className="qr" dangerouslySetInnerHTML={{ __html: qr }} />
+                <p>Scan deze QR-code met je authenticator-app.</p>
+                <form onSubmit={(event) => {
+                  event.preventDefault();
+                  confirm.post('/user/confirmed-two-factor-authentication', { onFinish: () => confirm.reset() });
+                }}>
+                  <Field label="Code uit de app" name="setup-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={confirm.data.code} onChange={(event) => confirm.setData('code', event.target.value)} required />
+                  <Errors errors={confirm.errors} />
+                  <button className="button" disabled={confirm.processing}>Code bevestigen</button>
+                </form>
+              </>
+            )}
+            {recoveryCodes.length > 0 && (
+              <details className="recovery">
+                <summary>Herstelcodes bekijken en veilig bewaren</summary>
+                <p>Deze codes geven toegang als je jouw app verliest. Bewaar ze privé, buiten deze website.</p>
+                <pre>{recoveryCodes.join('\n')}</pre>
+              </details>
+            )}
+            <Errors errors={setup.errors} />
+          </>
+        )}
+      </div>
+      {confirmed && (
+        <div className="card form-card">
+          <h2>2. Werkomgeving ontgrendelen</h2>
+          <p className="muted">Bevestig met je wachtwoord en een nieuwe code uit je app. Net ingelogd of de app ingesteld? Wacht tot de code verandert; dezelfde code kan niet tweemaal worden gebruikt. Dit geldt maximaal vier uur binnen deze browsersessie.</p>
+          {unlocked ? (
+            <p className="notice success">Deze werkomgeving is ontgrendeld. <Link href="/dashboard">Naar het overzicht →</Link></p>
+          ) : (
+            <form onSubmit={(event) => {
+              event.preventDefault();
+              unlock.post('/settings/security/unlock', { onFinish: () => unlock.reset() });
+            }}>
+              <Field label="Wachtwoord" name="password" type="password" autoComplete="current-password" value={unlock.data.password} onChange={(event) => unlock.setData('password', event.target.value)} required />
+              <Field label="Actuele verificatiecode" name="code" inputMode="numeric" autoComplete="one-time-code" value={unlock.data.code} onChange={(event) => unlock.setData('code', event.target.value)} maxLength={6} required />
+              <Errors errors={unlock.errors} />
+              <button className="button" disabled={unlock.processing}>Werkomgeving openen</button>
+            </form>
+          )}
+        </div>
+      )}
+    </Workspace>
+  );
+}

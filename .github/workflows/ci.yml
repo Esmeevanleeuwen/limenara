@@ -1,0 +1,128 @@
+name: Limenora checks
+on:
+  push:
+    branches: [main, feat/limenora-foundation]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive tracked source only (no environment or database)
+        run: git archive --format=zip HEAD -o limenora-source.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-snapshot
+          path: limenora-source.zip
+          retention-days: 3
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-password
+          MYSQL_DATABASE: limenora_test
+          MYSQL_USER: limenora
+          MYSQL_PASSWORD: ci-only-password
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -pci-only-password"
+          --health-interval=10s --health-timeout=5s --health-retries=20
+    env:
+      APP_ENV: local
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: limenora_test
+      DB_USERNAME: limenora
+      DB_PASSWORD: ci-only-password
+      MAIL_MAILER: array
+      SESSION_SECURE_COOKIE: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, bcmath, pdo_mysql, pdo_sqlite, sqlite3, dom, xml, xmlwriter, zip, sodium
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install backend
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist
+          php artisan key:generate
+          composer check-platform-reqs
+      - name: PHP syntax
+        run: git ls-files '*.php' | xargs -n1 php -l
+      - name: Install frontend
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
+      - name: Test on SQLite
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+        run: php artisan test
+      - name: Test on MySQL 8.4
+        env:
+          APP_ENV: testing
+        run: php artisan test
+      - name: Prepare browser database
+        run: php artisan migrate --seed --force
+      - name: Browser checks
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+      - name: Save resolved dependency versions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-locks
+          path: |
+            composer.lock
+            package-lock.json
+          retention-days: 7
+  lock-dependencies:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/limenora-foundation'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/limenora-foundation
+      - uses: actions/download-artifact@v4
+        with:
+          name: dependency-locks
+      - name: Commit lockfiles only after successful verification
+        env:
+          EXPECTED_SHA: '${{ github.sha }}'
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA" || { echo 'Branch changed; skipping lockfile write.'; exit 0; }
+          git add composer.lock package-lock.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: lock verified Composer and npm dependencies'
+          git push origin HEAD:feat/limenora-foundation

@@ -1,0 +1,92 @@
+# LOCAL DEVELOPMENT ONLY. Do not deploy this Compose stack to the internet.
+services:
+  laravel.test:
+    build:
+      context: ./vendor/laravel/sail/runtimes/8.4
+      args:
+        WWWGROUP: '${WWWGROUP:-1000}'
+        NODE_VERSION: '22'
+    image: limenora-sail:8.4
+    ports:
+      - '127.0.0.1:${APP_PORT:-8080}:80'
+      - '127.0.0.1:${VITE_PORT:-5173}:5173'
+    environment:
+      WWWUSER: '${WWWUSER:-1000}'
+      LARAVEL_SAIL: 1
+      XDEBUG_MODE: 'off'
+    volumes:
+      - '.:/var/www/html'
+    networks: [limenora]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+  queue:
+    image: limenora-sail:8.4
+    environment:
+      WWWUSER: '${WWWUSER:-1000}'
+      LARAVEL_SAIL: 1
+      SUPERVISOR_PHP_USER: sail
+    working_dir: /var/www/html
+    command: ['php', 'artisan', 'queue:work', '--sleep=3', '--tries=3', '--timeout=60']
+    volumes:
+      - '.:/var/www/html'
+    networks: [limenora]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    restart: unless-stopped
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_ROOT_PASSWORD: '${DB_ROOT_PASSWORD}'
+    volumes:
+      - 'limenora-mysql:/var/lib/mysql'
+    networks: [limenora]
+    healthcheck:
+      test: ['CMD-SHELL', 'MYSQL_PWD="$${MYSQL_PASSWORD}" mysql --user="$${MYSQL_USER}" --database="$${MYSQL_DATABASE}" --execute="SELECT 1" --silent']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    # No host port: access through the app or the local phpMyAdmin container.
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    ports:
+      - '127.0.0.1:${PMA_PORT:-8081}:80'
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 32M
+    networks: [limenora]
+    depends_on:
+      mysql:
+        condition: service_healthy
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '127.0.0.1:${MAILPIT_PORT:-8025}:8025'
+    networks: [limenora]
+  bootstrap:
+    profiles: [tools]
+    build:
+      context: ./docker/bootstrap
+    user: '${WWWUSER:-1000}:${WWWGROUP:-1000}'
+    working_dir: /var/www/html
+    entrypoint: ['composer']
+    environment:
+      COMPOSER_HOME: /tmp/composer
+    volumes:
+      - '.:/var/www/html'
+    networks: [limenora]
+networks:
+  limenora:
+    driver: bridge
+volumes:
+  limenora-mysql:
+    driver: local

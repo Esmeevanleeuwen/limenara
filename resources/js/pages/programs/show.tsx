@@ -1,0 +1,9 @@
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Errors, PublicLayout } from '../../components/ui';
+import type { Shared } from '../../types';
+type Program = { id: number; title: string; summary: string; goals: string | null; version: number; estimated_minutes: number; lessonTitles: string[] };
+export default function ShowProgram({ program, enrollmentId }: { program: Program; enrollmentId: number | null }) {
+  const { auth } = usePage<Shared>().props;
+  const form = useForm({});
+  return <PublicLayout><Head title={program.title}/><article className="prose-page page-width"><Link className="text-link" href="/programmas">← Alle programma’s</Link><p className="eyebrow">EDUCATIEF · {program.estimated_minutes} MIN · VERSIE {program.version}</p><h1>{program.title}</h1><p className="lead preserve">{program.summary}</p><h2>Wat je gaat ontdekken</h2><p className="preserve">{program.goals || 'De maker heeft nog geen aanvullende leerdoelen beschreven.'}</p><div className="lesson-list">{program.lessonTitles.map((title, i) => <div key={i}><span>{String(i + 1).padStart(2, '0')}</span>{title}</div>)}</div><Errors errors={form.errors}/>{enrollmentId ? <Link href={`/mijn-programmas/${enrollmentId}`} className="button">Verder met jouw versie →</Link> : auth.user ? <button className="button" disabled={form.processing} onClick={() => form.post(`/programmas/${program.id}/deelnemen`)}>Start dit programma →</button> : <Link href={`/programmas/${program.id}/start`} className="button">Maak een account om te starten →</Link>}<p className="fineprint">Je inschrijving en lesvoortgang zijn niet openbaar. Antwoorden delen is vrijwillig. Na inschrijving ontvang je een neutrale bevestigingsmail. Je volgt een vaste versie; latere inhoudswijzigingen vervangen jouw versie niet.</p></article></PublicLayout>;
+}

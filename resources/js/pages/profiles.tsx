@@ -1,0 +1,6 @@
+import { Head, Link } from '@inertiajs/react';
+import { Empty, Pagination, PublicLayout } from '../components/ui';
+import type { Paginated, Profile } from '../types';
+export default function Profiles({ profiles }: { profiles: Paginated<Profile> }) {
+  return <PublicLayout><Head title="Onze makers"/><section className="page-width section-space"><p className="eyebrow">KEN DE PERSOON ACHTER DE INHOUD</p><h1>Onze makers.</h1><p className="lead">Een werkwijze, een achtergrond, een eigen perspectief.</p><p className="notice subtle">Expertises worden in deze ontwikkelversie zelf opgegeven en zijn nog niet gecontroleerd. Er wordt nog geen zorg aangeboden.</p>{profiles.data.length ? <div className="card-grid">{profiles.data.map((p) => <Link key={p.public_id} href={`/makers/${p.public_id}`} className="card"><span className="avatar-letter">{p.display_name.slice(0, 1)}</span><h2>{p.display_name}</h2><p>{p.headline}</p><div className="tags">{p.specialties?.map((s) => <span key={s}>{s}</span>)}</div><span className="text-link">Bekijk profiel →</span></Link>)}</div> : <Empty title="De eerste profielen volgen binnenkort.">Medewerkers bepalen zelf wanneer zij hun profiel openbaar maken.</Empty>}<Pagination prev={profiles.prev_page_url} next={profiles.next_page_url}/></section></PublicLayout>;
+}

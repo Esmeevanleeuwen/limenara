@@ -1,0 +1,43 @@
+/* Program builder and participant workspace. */
+.wrap { flex-wrap: wrap; gap: 12px; }
+.template-card { display: flex; gap: 24px; padding: 32px; background: #edf2ed; border: 1px solid var(--border); border-radius: 18px; margin: 20px 0 28px; }
+.template-card > svg { flex-shrink: 0; }
+.template-card h2 { font-family: Georgia, serif; font-size: 1.8rem; line-height: 1.25; margin: 8px 0 12px; }
+.template-card p { max-width: 680px; margin-bottom: 18px; }
+.editor-columns { display: grid; grid-template-columns: minmax(0,1fr) 120px; gap: 18px; }
+.builder-stat { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--border); padding-top: 18px; }
+.builder-stat span { font-size: .8rem; color: var(--muted); }
+.sub-editor { padding: 22px; background: #f5f6f2; border-radius: 12px; }
+.sub-editor .actions { margin: 15px 0; }
+.checklist-editor-row { display: flex; align-items: center; gap: 10px; }
+.checklist-editor-row .field { flex: 1; min-width: 0; }
+.learning-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 8px 0 26px; }
+.learning-summary > div { flex: 1; max-width: 470px; }
+.learning-summary progress { display: block; width: 100%; margin-top: 12px; height: 8px; }
+.knowledge-question { border: 0; padding: 25px 0 0; margin: 0; min-width: 0; }
+.knowledge-question legend { padding-top: 22px; font-weight: 600; }
+.choice-list { display: grid; gap: 10px; margin: 15px 0; }
+.choice { padding: 14px 18px; border: 1px solid var(--border); text-align: left; border-radius: 10px; background: #fff; width: 100%; }
+.choice.chosen { border-color: var(--navy); background: #edf2ed; }
+.check-row { display: flex; align-items: flex-start; gap: 12px; margin: 16px 0; font-size: .88rem; line-height: 1.6; }
+.check-row input { width: 18px; height: 18px; min-width: 18px; margin-top: 3px; accent-color: var(--navy); }
+.response-editor { margin-top: 28px; padding-top: 25px; border-top: 1px solid var(--border); }
+.response-editor h3 { display: flex; align-items: center; gap: 10px; }
+.response-editor fieldset { border: 0; padding: 0; min-width: 0; }
+.response-controls { margin-top: 20px; flex-wrap: wrap; gap: 16px; }
+.feedback-card { margin-top: 24px; padding: 22px; background: #edf2ed; border-radius: 12px; }
+.feedback-card .eyebrow { margin-bottom: 14px; }
+.response-detail { margin: 20px 0; }
+.shared-answer { padding: 20px; border-left: 3px solid #8ca695; background: #f5f6f2; }
+.lesson-footer { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 32px; }
+.review-lesson { padding: 24px 0; }
+.preview-panel { margin-top: 20px; }
+:where(button, a, input, textarea, select):focus-visible { outline: 3px solid #466f62; outline-offset: 3px; }
+:where(.template-card, .response-detail, .lesson-content, .review-card) { overflow-wrap: anywhere; min-width: 0; }
+@media (max-width: 740px) {
+ .template-card { padding: 23px; gap: 14px; } .template-card > svg { display: none; }
+ .editor-columns { grid-template-columns: minmax(0,1fr) 92px; gap: 12px; }
+ .sub-editor { padding: 16px; } .learning-summary { align-items: flex-start; flex-direction: column; }
+ .learning-summary > div { width: 100%; } .lesson-footer { align-items: flex-start; flex-direction: column; }
+ .choice { padding: 12px; }
+}
