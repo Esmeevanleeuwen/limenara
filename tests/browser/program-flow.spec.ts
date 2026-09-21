@@ -14,18 +14,22 @@ function code(secret: string) {
 async function login(page: Page, email: string, password: string, secret: string | null = null) {
   await page.goto('/login'); await page.getByLabel('E-mailadres', { exact: true }).fill(email);
   await page.getByLabel('Wachtwoord', { exact: true }).fill(password); await page.getByRole('button', { name: 'Inloggen' }).click();
+  let usedCode = '';
   if (secret) {
-    await page.getByLabel('Verificatiecode', { exact: true }).fill(code(secret)); await page.getByRole('button', { name: 'Inloggen', exact: true }).click();
+    usedCode = code(secret);
+    await page.getByLabel('Verificatiecode', { exact: true }).fill(usedCode); await page.getByRole('button', { name: 'Inloggen', exact: true }).click();
   }
   await expect(page).toHaveURL(/dashboard/);
   if (secret) {
     await page.goto('/settings/security');
+    // The real second factor is required; wait for a new code instead of bypassing replay protection.
+    await expect.poll(() => code(secret), { timeout: 40000, intervals: [250] }).not.toBe(usedCode);
     await page.getByLabel('Wachtwoord', { exact: true }).fill(password); await page.getByLabel('Actuele verificatiecode').fill(code(secret));
     await page.getByRole('button', { name: 'Werkomgeving openen', exact: true }).click(); await expect(page).toHaveURL(/dashboard/);
   }
 }
 test('template, preview, review, enrollment, private sharing and feedback', async ({ page, browser }) => {
-  test.setTimeout(150000);
+  test.setTimeout(210000);
   const fixture = JSON.parse(execFileSync('php', ['tests/fixtures/program-flow.php'], { encoding: 'utf8' }));
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await login(page, fixture.users.staff, fixture.password, fixture.secrets.staff);
@@ -74,6 +78,11 @@ test('template, preview, review, enrollment, private sharing and feedback', asyn
   await member.getByRole('button', { name: 'Pauzeren', exact: true }).click();
   await expect(member.getByRole('button', { name: 'Hervatten', exact: true })).toBeVisible();
   await expect(member.getByRole('button', { name: 'Onderdeel afronden', exact: true })).toBeDisabled();
+  await member.getByRole('button', { name: 'Uitloggen', exact: true }).click();
+  await expect(member).toHaveURL('/');
+  await member.goBack();
+  await expect(member).toHaveURL(/login/);
+  await expect(member.getByText('Verzonnen browsertest, geen echte cliëntinformatie.')).toHaveCount(0);
   expect(errors).toEqual([]);
   await adminContext.close(); await memberContext.close();
 });

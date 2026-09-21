@@ -12,8 +12,8 @@ Een Nederlandstalige ontwikkelbasis met Laravel 13, PHP 8.4, React 19, TypeScrip
 - Rollen `member`, `staff` en `admin` via Spatie Permission; controle op de server en op eigenaarschap.
 - Extra MFA-controle voor de werkomgeving, naast de gewone login.
 - Professioneel profiel met openbare naam, introductie, werkwijze, expertises en opleidingsbeschrijving. Standaard privé. Zelf opgegeven expertise geeft nooit een verificatievinkje of extra rechten.
-- Educatieve programmabouwer: tekstlessen, reflectievragen, volgorde aanpassen, concepten, beoordeling door een andere beheerder en vaste publicatieversies.
-- Programma’s volgen en eigen lesvoortgang bewaren. Reflectieantwoorden worden nog niet ingevoerd of opgeslagen.
+- Educatieve programmabouwer: bewerkbaar basisprogramma, modules, tekst, reflectie, kennisvragen, keuzelijsten en eigen stappen; deelnemerspreview, kopiëren, concepten, beoordeling en vaste versies.
+- Programma’s volgen en eigen lesvoortgang bewaren. Reflectieantwoorden en reacties kunnen met uitsluitend testgegevens worden bewaard; standaard privé en per antwoord deelbaar met de eigen maker.
 - Lokale MySQL, phpMyAdmin en Mailpit via Docker/Sail.
 - Featuretests, MySQL- en SQLite-checks en Playwright-browsertests in GitHub Actions.
 
@@ -66,6 +66,26 @@ Er is bewust geen standaardbeheerder, bekend wachtwoord of automatische beheerro
 5. Keer terug naar het beheerdersaccount en beoordeel het programma. Je kunt je eigen programma niet goedkeuren.
 6. Gebruik een gewoon testaccount om het gepubliceerde programma te volgen. De voortgang is alleen voor dat account zichtbaar.
 
+## Programma’s: de uitgebreidere route
+
+Open **Programma’s maken → Gebruik dit basisprogramma**. Je krijgt *Meer overzicht in wat je ervaart*: 5 modules en 9 onderdelen. Het voorbeeld is een origineel educatief concept, geen gevalideerd behandelprotocol. Pas het aan, bekijk de deelnemerspreview, sla op en laat een andere beheerder beoordelen. Niets wordt automatisch gepubliceerd.
+
+Deelnemers kunnen zonder antwoord of quizscore afronden, pauzeren en later verdergaan. Antwoorden worden versleuteld opgeslagen, standaard privé. Alleen als iemand per antwoord bewust **Delen met de maker** kiest, verschijnt dat antwoord onder **Gedeelde antwoorden** bij die maker. De maker kan daar reageren, niet de rest van de voortgang inzien. Delen intrekken of een testantwoord verwijderen werkt ook tijdens pauze.
+
+De registratie bewaart de gekozen programmaroute. De bevestigingsmail is Nederlandstalig. Na bevestiging beslist de gebruiker nog zelf om te starten. Programma-inschrijvingen, eerste afronding, beoordelingen en reacties sturen neutrale mails via de wachtrij. De `queue`-container start automatisch via setup/update. Alle lokale mails blijven in Mailpit, niet de echte inbox. Er zijn geen automatische voortgangsherinneringen of automatische medische besluiten.
+
+**Bestaande installatie bijwerken** (Ubuntu, Docker Desktop open):
+
+```bash
+cd ~/projects/limenara
+git pull --ff-only
+bash scripts/update.sh
+```
+
+Geen reset, `migrate:fresh`, nieuwe APP_KEY of `down -v` nodig. Bewaar je bestaande `.env`; verlies van de sleutel maakt versleutelde antwoorden onleesbaar. Het updatescript is uitsluitend voor deze lokale ontwikkelomgeving, niet voor een productie-uitrol.
+
+Zie [de complete programmauitleg](docs/PROGRAMMAS.md) voor rechten, afbakening, mails en testen.
+
 ## Dagelijks ontwikkelen
 
 ```bash
@@ -81,17 +101,14 @@ Voor versie-updates:
 
 ```bash
 git pull --ff-only
-./dev composer install
-./dev npm ci
-./dev artisan migrate
-./dev npm run build
+bash scripts/update.sh
 ```
 
 Voer nooit `migrate:fresh` of `docker compose down -v` uit op een database waarvan je de gegevens wilt bewaren.
 
 ## GitHub Actions
 
-De workflow voert PHP-syntaxcontrole, een TypeScript/frontendbuild, de featuretests op SQLite én MySQL 8.4 en twee Playwright-smoketests uit. Bij succes worden de exact opgeloste dependencyversies als artifacts opgeslagen. Op de ontwikkelbranch commit een afzonderlijke, beperkt bevoegde job alleen `composer.lock` en `package-lock.json`. Deze job verandert geen broncode en gebruikt nooit een force push. Latere installaties gebruiken deze lockfiles.
+De workflow voert PHP-syntaxcontrole, een TypeScript/frontendbuild, de featuretests op SQLite én MySQL 8.4 en Playwright-tests voor de basis én de maker/beoordelaar/deelnemer-route uit. Bij succes worden de exact opgeloste dependencyversies als artifacts opgeslagen. Op de ontwikkelbranch commit een afzonderlijke, beperkt bevoegde job alleen `composer.lock` en `package-lock.json`. Deze job verandert geen broncode en gebruikt nooit een force push. Latere installaties gebruiken deze lockfiles.
 
 De geautomatiseerde tests bewijzen niet dat het platform geschikt is voor productie of zorg. Lees ook `SECURITY.md`, `docs/ARCHITECTUUR.md` en `docs/ROADMAP.md`.
 

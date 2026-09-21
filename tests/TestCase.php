@@ -17,7 +17,7 @@ abstract class TestCase extends BaseTestCase
     }
     protected function member(string $role = 'member', bool $mfa = false): User
     {
-        $user = User::factory()->create($mfa ? ['two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'), 'two_factor_confirmed_at' => now()] : []);
+        $user = User::factory()->create($mfa ? ['two_factor_secret' => encrypt(app(\Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider::class)->generateSecretKey()), 'two_factor_confirmed_at' => now()] : []);
         $user->assignRole($role);
         return $user;
     }

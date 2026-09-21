@@ -16,7 +16,8 @@ class AuthenticationTest extends TestCase
     public function test_registration_never_grants_submitted_privileges(): void
     {
         Notification::fake();
-        $this->post('/register', ['name' => 'Testgebruiker', 'email' => 'TEST@example.test', 'password' => 'LongPassword123!', 'password_confirmation' => 'LongPassword123!', 'role' => 'admin', 'permissions' => ['staff.invite'], 'email_verified_at' => now()->toISOString()])->assertRedirect('/dashboard');
+        $password = bin2hex(random_bytes(24));
+        $this->post('/register', ['name' => 'Testgebruiker', 'email' => 'TEST@example.test', 'password' => $password, 'password_confirmation' => $password, 'role' => 'admin', 'permissions' => ['staff.invite'], 'email_verified_at' => now()->toISOString()])->assertRedirect('/dashboard');
         $user = User::where('email', 'test@example.test')->firstOrFail();
         $this->assertTrue($user->hasRole('member'));
         $this->assertFalse($user->can('staff.invite'));
@@ -35,7 +36,8 @@ class AuthenticationTest extends TestCase
     public function test_login_and_logout_work(): void
     {
         $user = $this->member();
-        $this->post('/login', ['email' => $user->email, 'password' => 'TestPassword123!'])->assertRedirect('/dashboard');
+        $password = bin2hex(random_bytes(24)); $user->password = $password; $user->save();
+        $this->post('/login', ['email' => $user->email, 'password' => $password])->assertRedirect('/dashboard');
         $this->assertAuthenticatedAs($user);
         $this->post('/logout')->assertRedirect('/');
         $this->assertGuest();
@@ -50,7 +52,7 @@ class AuthenticationTest extends TestCase
     {
         $staff = $this->member('staff');
         $this->actingAs($staff)->get('/werk/profiel')->assertRedirect('/settings/security');
-        $staff->forceFill(['two_factor_confirmed_at' => now(), 'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP')])->save();
+        $staff->forceFill(['two_factor_confirmed_at' => now(), 'two_factor_secret' => encrypt(app(\Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider::class)->generateSecretKey())])->save();
         $this->get('/werk/profiel')->assertRedirect('/settings/security');
         $this->asStaff($staff)->get('/werk/profiel')->assertOk();
         $this->withSession(['staff_mfa_at' => now()->subHours(5)->timestamp])->get('/werk/profiel')->assertRedirect('/settings/security');
@@ -58,9 +60,11 @@ class AuthenticationTest extends TestCase
     public function test_security_secrets_are_not_shared_without_password_reconfirmation(): void
     {
         $staff = $this->member('staff', true);
-        $staff->forceFill(['two_factor_recovery_codes' => encrypt(json_encode(['secret-recovery-code']))])->save();
-        $this->actingAs($staff)->get('/settings/security')->assertOk()->assertDontSee('secret-recovery-code');
-        $this->get('/dashboard')->assertDontSee('JBSWY3DPEHPK3PXP')->assertDontSee('secret-recovery-code');
+        $secret = decrypt($staff->two_factor_secret);
+        $recovery = bin2hex(random_bytes(16));
+        $staff->forceFill(['two_factor_recovery_codes' => encrypt(json_encode([$recovery]))])->save();
+        $this->actingAs($staff)->get('/settings/security')->assertOk()->assertDontSee($recovery);
+        $this->get('/dashboard')->assertDontSee($secret)->assertDontSee($recovery);
     }
     public function test_user_input_is_escaped_and_responses_are_not_cached(): void
     {
@@ -68,5 +72,13 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->get('/dashboard');
         $response->assertOk()->assertDontSee('<script>alert(1)</script>', false)->assertHeader('Referrer-Policy', 'no-referrer');
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+    }
+    public function test_inertia_history_is_encrypted_and_cleared_after_logout(): void
+    {
+        $this->actingAs($this->member())->get('/dashboard', ['X-Inertia' => 'true'])
+            ->assertOk()->assertJsonPath('encryptHistory', true);
+        $this->post('/logout')->assertRedirect('/');
+        $this->get('/', ['X-Inertia' => 'true'])->assertOk()
+            ->assertJsonPath('encryptHistory', true)->assertJsonPath('clearHistory', true);
     }
 }

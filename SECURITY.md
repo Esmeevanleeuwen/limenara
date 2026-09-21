@@ -18,10 +18,16 @@ Deze repository is een ontwikkelprototype. Gebruik alleen testgegevens en houd d
 
 ## Nog vereist voor gebruik buiten ontwikkeling
 
-Onafhankelijke threat modelling en beveiligingsreview; CSRF/origin- en CSP-beleid controleren; dependency-audits; image/action-digests pinnen; HTTPS, netwerkisolatie, private objectopslag en malwarecontrole; backups met hersteltests; sleutelbeheer; logredactie; privacy-/verwerkersafspraken; kwalificatiecontrole; passende bewaartermijnen, export/verwijdering en incidentafhandeling; eventuele DPIA en beoordeling van zorgverantwoordelijkheden. Gezondheidsgegevens, dossiers en chat worden pas toegevoegd na afzonderlijk ontwerp en toetsing.
+Onafhankelijke threat modelling en beveiligingsreview; CSRF/origin- en CSP-beleid controleren; dependency-audits; image/action-digests pinnen; HTTPS, netwerkisolatie, private objectopslag en malwarecontrole; backups met hersteltests; sleutelbeheer; logredactie; privacy-/verwerkersafspraken; kwalificatiecontrole; passende bewaartermijnen, export/verwijdering en incidentafhandeling; eventuele DPIA en beoordeling van zorgverantwoordelijkheden. Echte gezondheidsgegevens, dossiers en chat zijn niet toegestaan vóór afzonderlijk ontwerp en toetsing. Reflectieopslag dient uitsluitend voor fictieve ontwikkelgegevens.
 
 Publieke en persoonlijke tabellen gebruiken nu één lokale testdatabase. Dit is niet de eerder beschreven productie-isolatie: daarvoor moeten gescheiden databases/accounts en streng afgebakende diensten worden ingericht vóór toevoeging van cliëntgegevens.
 
 Wachtwoordherstel kan accountbestaan onthullen via Fortify-validatie. Uitnodigingen, resetlinks en QR-codes in lokale testmails zijn geheim. Er is nog geen endpoint voor accountverwijdering of een geautomatiseerde bewaartermijn voor alle gegevens. Er is geen voortdurende monitoring of crisisteam.
 
 Meld echte kwetsbaarheden niet met persoonsgegevens of geheime tokens in openbare issues. Bespreek eerst met de repository-eigenaar een privé meldroute.
+
+## Programma-uitbreiding
+
+Reflecties/feedback zijn applicatieversleuteld en alleen expliciet geserialiseerd na eigendoms- of deelcontrole. Admin heeft geen algemene inzage. Nieuwe reacties vereisen actuele deeltoestemming onder een databaselock. Intrekken werkt ook bij pauze en blokkeert nog openstaande mailmeldingen; eerder gelezen informatie kan niet worden teruggehaald. De outbox bevat alleen ontvanger-ID, gebeurtenistype en onderwerp-ID, geen persoonlijke tekst. Mails blijven neutraal. Queue retries zijn niet hetzelfde als gegarandeerd exact-once SMTP. Een maker krijgt geen klinische bevoegdheid door `programs.respond`.
+
+De testnotities vormen geen medisch dossier. Definitieve bewaartermijnen, export/verwijdering van accounts, consentdocumentatie, scheiding van productiedatabases en sleutelbeheer zijn nog niet ingericht. Lees `docs/PROGRAMMAS.md`.

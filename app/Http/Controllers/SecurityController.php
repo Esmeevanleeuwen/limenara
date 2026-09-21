@@ -26,7 +26,7 @@ class SecurityController
         $user = $request->user();
         abort_unless($user->two_factor_confirmed_at && $user->two_factor_secret, 403);
         if (! $provider->verify(decrypt($user->two_factor_secret), $data['code'])) {
-            return back()->withErrors(['code' => 'De verificatiecode klopt niet of is verlopen.']);
+            return back()->withErrors(['code' => 'De code is onjuist, verlopen of al gebruikt. Wacht tot je app een nieuwe code toont en probeer opnieuw.']);
         }
         $request->session()->regenerate();
         $request->session()->put(['staff_mfa_user' => $user->id, 'staff_mfa_at' => now()->timestamp]);
