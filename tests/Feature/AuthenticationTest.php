@@ -75,10 +75,15 @@ class AuthenticationTest extends TestCase
     }
     public function test_inertia_history_is_encrypted_and_cleared_after_logout(): void
     {
-        $this->actingAs($this->member())->get('/dashboard', ['X-Inertia' => 'true'])
-            ->assertOk()->assertJsonPath('encryptHistory', true);
+        $initial = $this->actingAs($this->member())->get('/dashboard')->assertOk();
+        $page = $initial->viewData('page');
+        $this->assertTrue($page['encryptHistory']);
+        // A real Inertia client sends the version from the initial HTML response.
+        // Omitting it with built assets correctly yields a 409 reload instruction.
+        $headers = ['X-Inertia' => 'true', 'X-Inertia-Version' => $page['version']];
+        $this->get('/dashboard', $headers)->assertOk()->assertJsonPath('encryptHistory', true);
         $this->post('/logout')->assertRedirect('/');
-        $this->get('/', ['X-Inertia' => 'true'])->assertOk()
+        $this->get('/', $headers)->assertOk()
             ->assertJsonPath('encryptHistory', true)->assertJsonPath('clearHistory', true);
     }
 }
