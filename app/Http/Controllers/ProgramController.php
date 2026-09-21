@@ -38,7 +38,6 @@ class ProgramController
     public function begin(Request $request, Program $program)
     {
         abort_unless($program->latestVersion, 404);
-        // Preserve context, never enroll by GET or bypass email verification.
         $request->session()->put('intended_program_id', $program->id);
         if (! $request->user()) return redirect('/register');
         if (! $request->user()->hasVerifiedEmail()) return redirect('/email/verify');
@@ -90,7 +89,7 @@ class ProgramController
             abort_unless($locked->revision === $revision, 409, 'Dit concept is ondertussen gewijzigd. Vernieuw de pagina voordat je verdergaat.');
             $locked->fill($data); $locked->status = 'draft'; $locked->revision++; $locked->save();
         });
-        return back()->with('success', 'Concept opgeslagen. Een bestaande publicatie blijft ongewijzigd.');
+        return redirect('/werk/programmas/'.$program->id)->with('success', 'Concept opgeslagen. Een bestaande publicatie blijft ongewijzigd.');
     }
     public function submit(Request $request, Program $program)
     {
@@ -106,7 +105,7 @@ class ProgramController
                 ProgramMail::once('review:'.$locked->id.':'.$locked->revision.':'.$reviewer->id, $reviewer->id, 'review', $locked->id);
             }
         });
-        return back()->with('success', 'Concept ingediend. Beoordelaars ontvangen een melding.');
+        return redirect('/werk/programmas/'.$program->id)->with('success', 'Concept ingediend. Beoordelaars ontvangen een melding.');
     }
     public function reviews(Request $request)
     {
@@ -131,7 +130,7 @@ class ProgramController
             AuditEvent::record($request->user()->id, 'program.published', $locked->id);
             ProgramMail::once('published:'.$locked->id.':'.$locked->revision, $locked->author_id, 'published', $locked->id);
         });
-        return back()->with('success', 'Nieuwe educatieve programmaversie gepubliceerd. Dit is geen behandelgoedkeuring.');
+        return redirect('/beheer/beoordelingen')->with('success', 'Nieuwe educatieve programmaversie gepubliceerd. Dit is geen behandelgoedkeuring.');
     }
     public function returnDraft(Request $request, Program $program)
     {
@@ -145,6 +144,6 @@ class ProgramController
             AuditEvent::record($request->user()->id, 'program.returned', $locked->id);
             ProgramMail::once('returned:'.$locked->id.':'.$locked->revision, $locked->author_id, 'returned', $locked->id);
         });
-        return back()->with('success', 'Programma met toelichting teruggestuurd naar de maker.');
+        return redirect('/beheer/beoordelingen')->with('success', 'Programma met toelichting teruggestuurd naar de maker.');
     }
 }

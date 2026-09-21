@@ -43,7 +43,7 @@ class EnrollmentController
         DB::transaction(function () use ($enrollment, $data) {
             Enrollment::whereKey($enrollment->id)->lockForUpdate()->firstOrFail()->update($data);
         });
-        return back()->with('success', $data['is_paused'] ? 'Gepauzeerd. Je kunt blijven teruglezen en delen intrekken. Er worden geen voortgangsherinneringen gestuurd.' : 'Je kunt weer verdergaan op je eigen tempo.');
+        return redirect('/mijn-programmas/'.$enrollment->id)->with('success', $data['is_paused'] ? 'Gepauzeerd. Je kunt blijven teruglezen en delen intrekken. Er worden geen voortgangsherinneringen gestuurd.' : 'Je kunt weer verdergaan op je eigen tempo.');
     }
     public function progress(Request $request, Enrollment $enrollment)
     {
@@ -60,6 +60,6 @@ class EnrollmentController
             $locked->update(['completed_lessons' => $done, 'completed_at' => $complete ? ($locked->completed_at ?? now()) : null]);
             if ($complete) ProgramMail::once('completed:'.$locked->id, $locked->user_id, 'completed', $locked->id);
         });
-        return back();
+        return redirect('/mijn-programmas/'.$enrollment->id);
     }
 }

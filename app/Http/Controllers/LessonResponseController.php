@@ -17,7 +17,6 @@ class LessonResponseController
         abort_unless($enrollment->user_id === $request->user()->id, 404);
         $data = $request->validate(['answer' => ['required', 'string', 'max:4000'], 'share' => ['required', 'boolean'], 'revision' => ['required', 'integer', 'min:0']]);
         DB::transaction(function () use ($request, $enrollment, $lesson, $data) {
-            // Serialize create/update per enrollment; published lesson indices never change.
             $e = Enrollment::whereKey($enrollment->id)->lockForUpdate()->firstOrFail();
             abort_if($e->is_paused, 409, 'Hervat eerst het programma.');
             $item = $e->version->lessons[$lesson] ?? null;
@@ -34,7 +33,7 @@ class LessonResponseController
             AuditEvent::record($request->user()->id, $data['share'] ? 'response.shared' : 'response.private', $response->id);
             if ($data['share']) ProgramMail::once('shared:'.$response->id.':'.$response->revision, $author->id, 'shared', $response->id);
         });
-        return back()->with('success', $data['share'] ? 'Opgeslagen en alleen met de genoemde maker gedeeld.' : 'Privé opgeslagen. De maker kan dit antwoord niet lezen.');
+        return redirect('/mijn-programmas/'.$enrollment->id)->with('success', $data['share'] ? 'Opgeslagen en alleen met de genoemde maker gedeeld.' : 'Privé opgeslagen. De maker kan dit antwoord niet lezen.');
     }
 
     public function unshare(Request $request, Enrollment $enrollment, int $lesson)
@@ -45,7 +44,7 @@ class LessonResponseController
             $r->shared_at = null; $r->revision++; $r->save();
             AuditEvent::record($request->user()->id, 'response.unshared', $r->id);
         });
-        return back()->with('success', 'Toegang voor de maker ingetrokken. Al gelezen of gekopieerde informatie kan niet worden teruggehaald.');
+        return redirect('/mijn-programmas/'.$enrollment->id)->with('success', 'Toegang voor de maker ingetrokken. Al gelezen of gekopieerde informatie kan niet worden teruggehaald.');
     }
 
     public function delete(Request $request, Enrollment $enrollment, int $lesson)
@@ -56,7 +55,7 @@ class LessonResponseController
             AuditEvent::record($request->user()->id, 'response.deleted', $r->id);
             $r->delete();
         });
-        return back()->with('success', 'Dit testantwoord en de bijbehorende reactie zijn verwijderd.');
+        return redirect('/mijn-programmas/'.$enrollment->id)->with('success', 'Dit testantwoord en de bijbehorende reactie zijn verwijderd.');
     }
 
     public function index(Request $request)
@@ -91,6 +90,6 @@ class LessonResponseController
             AuditEvent::record($request->user()->id, 'response.feedback', $r->id);
             ProgramMail::once('feedback:'.$r->id.':'.$r->revision, $r->enrollment->user_id, 'feedback', $r->id);
         });
-        return back()->with('success', 'Reactie opgeslagen. De deelnemer krijgt een neutrale e-mailmelding.');
+        return redirect('/werk/inzendingen/'.$response->id)->with('success', 'Reactie opgeslagen. De deelnemer krijgt een neutrale e-mailmelding.');
     }
 }
